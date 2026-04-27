@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gerador QR Code PIX - João Mateus</title>
+    <script src="https://cdn.jsdelivr.net/gh/ushelp/EasyQRCodeJS@master/dist/easy.qrcode.min.js"></script>
+    <style>
+      :root {
+        --primary: #007bff;
+        --dark: #1a1a1a;
+        --white: #ffffff;
+      }
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f4f7f6;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+      }
+      .container {
+        background: var(--white);
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+        font-weight: bold;
+      }
+      .btn-type {
+        background: var(--primary);
+        color: white;
+      }
+      .btn-type:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+      }
+      input {
+        width: 90%;
+        padding: 12px;
+        margin: 15px 0;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        outline: none;
+      }
+      #qrcode {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .moldes {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .molde-opt {
+        height: 30px;
+        border-radius: 5px;
+        cursor: pointer;
+        border: 2px solid #ddd;
+      }
+      .download-btn {
+        background: #28a745;
+        color: white;
+        width: 100%;
+        margin-top: 15px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Gerador de QR Code</h2>
+      <p>O que deseja gerar hoje?</p>
+
+      <!-- Menu Principal -->
+      <div class="btn-group" id="main-menu">
+        <button class="btn-type" onclick="setMode('Link')">
+          🔗 Gerar Link
+        </button>
+        <button
+          class="btn-type"
+          style="background: #e91e63"
+          onclick="showPixRegistration()"
+        >
+          💎 Cadastrar PIX
+        </button>
+      </div>
+
+      <!-- Sub-menu PIX (Aba de Cadastro) -->
+      <div id="pix-selector" style="display: none; margin-bottom: 20px">
+        <p>Escolha o tipo de chave PIX:</p>
+        <div class="btn-group">
+          <button class="btn-type" onclick="setMode('CPF')">CPF</button>
+          <button class="btn-type" onclick="setMode('Celular')">Celular</button>
+          <button class="btn-type" onclick="setMode('E-mail')">E-mail</button>
+          <button
+            class="btn-type"
+            style="background: #666"
+            onclick="resetMenu()"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+
+      <div id="input-area" style="display: none">
+        <label id="label-input" style="font-weight: bold"></label><br />
+        <input type="text" id="user-data" placeholder="Digite aqui..." />
+
+        <div id="pix-fields" style="display: none">
+          <label style="font-weight: bold">Nome do Recebedor:</label><br />
+          <input type="text" id="pix-name" placeholder="Ex: JOAO MATEUS" />
+          <label style="font-weight: bold">Cidade:</label><br />
+          <input type="text" id="pix-city" placeholder="Ex: SAO PAULO" />
+        </div>
+
+        <p>Escolha um Molde/Cor:</p>
+        <div class="moldes" id="moldes-container"></div>
+
+        <button
+          class="btn-type"
+          style="width: 100%; background: #333"
+          onclick="generateQR()"
+        >
+          Criar QR Code
+        </button>
+      </div>
+
+      <div id="qrcode"></div>
+      <button id="download" class="download-btn" onclick="downloadQR()">
+        Baixar Imagem
+      </button>
+    </div>
+
+    <script>
+      let currentMode = "";
+      const qrcodeContainer = document.getElementById("qrcode");
+      const downloadBtn = document.getElementById("download");
+
+      // Cores para os 10 moldes
+      const colors = [
+        "#000000",
+        "#1a73e8",
+        "#d93025",
+        "#188038",
+        "#f29900",
+        "#8e24aa",
+        "#00acc1",
+        "#ff4081",
+        "#3949ab",
+        "#4caf50",
+      ];
+
+      // Criar botões de moldes
+      const moldesDiv = document.getElementById("moldes-container");
+      colors.forEach((color) => {
+        const div = document.createElement("div");
+        div.className = "molde-opt";
+        div.style.backgroundColor = color;
+        div.onclick = () => {
+          window.selectedColor = color;
+          generateQR();
+        };
+        moldesDiv.appendChild(div);
+      });
+
+      window.selectedColor = "#000000";
+
+      function showPixRegistration() {
+        document.getElementById("main-menu").style.display = "none";
+        document.getElementById("pix-selector").style.display = "block";
+        qrcodeContainer.innerHTML = "";
+        downloadBtn.style.display = "none";
+      }
+
+      function resetMenu() {
+        document.getElementById("main-menu").style.display = "flex";
+        document.getElementById("pix-selector").style.display = "none";
+        document.getElementById("input-area").style.display = "none";
+        qrcodeContainer.innerHTML = "";
+        downloadBtn.style.display = "none";
+      }
+
+      function setMode(mode) {
+        currentMode = mode;
+        document.getElementById("input-area").style.display = "block";
+        document.getElementById("pix-fields").style.display =
+          mode === "Link" ? "none" : "block";
+        document.getElementById("label-input").innerText =
+          "Digite seu " + mode + ":";
+      }
+
+      function crc16(str) {
+        let crc = 0xffff;
+        for (let i = 0; i < str.length; i++) {
+          crc ^= str.charCodeAt(i) << 8;
+          for (let j = 0; j < 8; j++) {
+            if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+            else crc <<= 1;
+          }
+        }
+        return (crc & 0xffff).toString(16).toUpperCase().padStart(4, "0");
+      }
+
+      function generatePixPayload(key, name, city) {
+        const format = (id, val) =>
+          id + String(val.length).padStart(2, "0") + val;
+        const clean = (s) =>
+          s
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toUpperCase();
+
+        const merchantInfo = format("00", "br.gov.bcb.pix") + format("01", key);
+
+        let payload =
+          format("00", "01") +
+          format("26", merchantInfo) +
+          format("52", "0000") +
+          format("53", "986") +
+          format("58", "BR") +
+          format("59", clean(name).substring(0, 25)) +
+          format("60", clean(city).substring(0, 15)) +
+          format("62", format("05", "***")) +
+          "6304";
+
+        return payload + crc16(payload);
+      }
+
+      function generateQR() {
+        const val = document.getElementById("user-data").value;
+        if (!val) return alert("Senhor João Mateus, digite o dado primeiro!");
+
+        let qrText = val;
+
+        // Se for uma chave PIX (CPF, Celular, E-mail), gera o payload completo
+        if (currentMode !== "Link") {
+          const name = document.getElementById("pix-name").value;
+          const city = document.getElementById("pix-city").value;
+          if (!name || !city)
+            return alert("Nome e Cidade são obrigatórios para PIX!");
+          qrText = generatePixPayload(val, name, city);
+        }
+
+        qrcodeContainer.innerHTML = "";
+
+        new QRCode(qrcodeContainer, {
+          text: qrText,
+          width: 256,
+          height: 256,
+          colorDark: window.selectedColor,
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H,
+          quietZone: 15,
+          dotScale: 0.8,
+        });
+
+        downloadBtn.style.display = "block";
+      }
+
+      function downloadQR() {
+        const canvas = qrcodeContainer.querySelector("canvas");
+        const img = qrcodeContainer.querySelector("img");
+
+        // Tenta obter os dados da imagem da tag <img> ou do <canvas>
+        // Isso garante que o download funcione independente de como a biblioteca renderizou
+        const qrData =
+          img && img.src && img.src.startsWith("data:")
+            ? img.src
+            : canvas
+              ? canvas.toDataURL("image/png")
+              : null;
+
+        if (!qrData)
+          return alert(
+            "Erro: A imagem ainda não foi processada. Tente clicar em 'Criar QR Code' novamente.",
+          );
+
+        const link = document.createElement("a");
+        link.download = "qrcode-joao-mateus.png";
+        link.href = qrData;
+        document.body.appendChild(link); // Necessário para funcionamento em alguns navegadores
+        link.click();
+        document.body.removeChild(link); // Limpa o DOM após o clique
+      }
+    </script>
+  </body>
+</html>
