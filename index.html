@@ -1,384 +1,857 @@
 <!doctype html>
 <html lang="pt-br">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gerador QR Code PIX - João Mateus</title>
+    <!-- Tailwind CSS para um visual premium, limpo e moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteca EasyQRCodeJS -->
     <script src="https://cdn.jsdelivr.net/gh/ushelp/EasyQRCodeJS@master/dist/easy.qrcode.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-      :root {
-        --primary: #007bff;
-        --dark: #1a1a1a;
-        --white: #ffffff;
-      }
-      body {
-        font-family: "Segoe UI", sans-serif;
-        background: #f4f7f6;
-        display: flex;
-        justify-content: center;
-        padding: 20px;
-      }
-      .container {
-        background: var(--white);
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        max-width: 500px;
-        text-align: center;
-      }
-      .btn-group {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-      }
-      button {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: 0.3s;
-        font-weight: bold;
-      }
-      .btn-type {
-        background: var(--primary);
-        color: white;
-      }
-      .btn-type:hover {
-        opacity: 0.8;
-        transform: translateY(-2px);
-      }
-      input {
-        width: 90%;
-        padding: 12px;
-        margin: 15px 0;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        outline: none;
-      }
-      #qrcode {
-        margin-top: 20px;
-        display: flex;
-        justify-content: center;
-      }
-      .moldes {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 10px;
-        margin: 20px 0;
-      }
-      .molde-opt {
-        height: 30px;
-        border-radius: 5px;
-        cursor: pointer;
-        border: 2px solid #ddd;
-      }
-      .download-btn {
-        background: #28a745;
-        color: white;
-        width: 100%;
-        margin-top: 15px;
-        display: none;
-      }
-      /* Estilos para o Botão Flutuante e Modal */
-      .float-btn {
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        background: #ffc107;
-        color: #000;
-        padding: 12px 20px;
-        border-radius: 30px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        cursor: pointer;
-        z-index: 999;
-        font-weight: bold;
-        border: none;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.6);
-        z-index: 1000;
-        justify-content: center;
-        align-items: center;
-      }
-      .modal-content {
-        background: white;
-        padding: 25px;
-        border-radius: 15px;
-        max-width: 420px;
-        width: 85%;
-        text-align: left;
-      }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Custom scrollbar para o painel lateral */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        /* Estilos específicos para o Workspace de Customização */
+        .workspace-area {
+            background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+            background-size: 16px 16px;
+        }
+        .draggable-logo {
+            cursor: move;
+            user-select: none;
+            touch-action: none;
+            transition: box-shadow 0.2s, transform 0.1s;
+        }
+        .draggable-logo:active {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        /* Moldura de preview */
+        .preview-frame-wrapper {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Pulsar efeito ao arrastar arquivos */
+        .dropzone-active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
     </style>
-  </head>
-  <body>
-    <div class="container">
-      <h2>Gerador de QR Code</h2>
-      <p>O que deseja gerar hoje?</p>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-8 text-slate-800">
 
-      <!-- Menu Principal -->
-      <div class="btn-group" id="main-menu">
-        <button class="btn-type" onclick="setMode('Link')">
-          🔗 Gerar Link
-        </button>
-        <button
-          class="btn-type"
-          style="background: #e91e63"
-          onclick="showPixRegistration()"
-        >
-          💎 Cadastrar PIX
-        </button>
-      </div>
+    <!-- Notification Toast System -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
-      <!-- Sub-menu PIX (Aba de Cadastro) -->
-      <div id="pix-selector" style="display: none; margin-bottom: 20px">
-        <p>Escolha o tipo de chave PIX:</p>
-        <div class="btn-group">
-          <button class="btn-type" onclick="setMode('CPF')">CPF</button>
-          <button class="btn-type" onclick="setMode('Celular')">Celular</button>
-          <button class="btn-type" onclick="setMode('E-mail')">E-mail</button>
-          <button
-            class="btn-type"
-            style="background: #666"
-            onclick="resetMenu()"
-          >
-            Voltar
-          </button>
+    <!-- Main Responsive Workspace Container -->
+    <div class="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-6xl overflow-hidden flex flex-col lg:flex-row">
+        
+        <!-- Left Column: Controls & Configuration (Scrollable on Desktop) -->
+        <div class="w-full lg:w-[55%] p-6 md:p-8 lg:max-h-[85vh] overflow-y-auto border-b lg:border-b-0 lg:border-r border-slate-100">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="bg-blue-600 text-white p-3 rounded-2xl shadow-lg shadow-blue-100">
+                    <i class="fa-solid fa-qrcode text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">QR Code Studio</h1>
+                    <p class="text-sm text-slate-500 font-medium">Por João Mateus — Gerador Inteligente</p>
+                </div>
+            </div>
+
+            <!-- Menu Principal / Seletor de Tipo de QR Code -->
+            <div class="mb-6">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">O que deseja gerar hoje?</label>
+                <div class="grid grid-cols-2 gap-3" id="main-menu">
+                    <button class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-blue-600 text-blue-600 font-semibold hover:bg-blue-50 transition" onclick="setMode('Link')">
+                        <i class="fa-solid fa-link"></i> Gerar Link
+                    </button>
+                    <button class="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-pink-500 text-pink-500 font-semibold hover:bg-pink-50 transition" onclick="showPixRegistration()">
+                        <i class="fa-solid fa-gem"></i> Cadastrar PIX
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sub-menu PIX -->
+            <div id="pix-selector" class="hidden mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Tipo de chave PIX</span>
+                    <button class="text-xs text-slate-400 hover:text-slate-600 font-bold flex items-center gap-1" onclick="resetMenu()">
+                        <i class="fa-solid fa-arrow-left"></i> Voltar ao menu
+                    </button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="py-2.5 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-slate-400 text-sm font-semibold transition" onclick="setMode('CPF')">CPF</button>
+                    <button class="py-2.5 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-slate-400 text-sm font-semibold transition" onclick="setMode('Celular')">Celular</button>
+                    <button class="py-2.5 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 hover:border-slate-400 text-sm font-semibold transition" onclick="setMode('E-mail')">E-mail</button>
+                </div>
+            </div>
+
+            <!-- Inputs Formulário principal -->
+            <div id="input-area" class="hidden space-y-4">
+                <div>
+                    <label id="label-input" class="block text-sm font-semibold text-slate-700 mb-1.5"></label>
+                    <input type="text" id="user-data" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm shadow-sm" placeholder="Digite aqui..." oninput="updateLivePreview()" />
+                </div>
+
+                <div id="pix-fields" class="hidden space-y-4 pt-2 border-t border-slate-100">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nome do Recebedor:</label>
+                        <input type="text" id="pix-name" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm shadow-sm" placeholder="Ex: JOAO MATEUS" oninput="updateLivePreview()" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">Cidade:</label>
+                        <input type="text" id="pix-city" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm shadow-sm" placeholder="Ex: SAO PAULO" oninput="updateLivePreview()" />
+                    </div>
+                </div>
+
+                <!-- Nova Funcionalidade 1 & 2: Customização Avançada e Uploads de Mídia -->
+                <div class="pt-4 border-t border-slate-100 space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-sliders text-blue-600"></i> Estilo & Customização</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Upload Logo -->
+                        <div class="border-2 border-dashed border-slate-200 rounded-2xl p-4 hover:border-blue-400 transition cursor-pointer relative" id="logo-dropzone">
+                            <div class="text-center">
+                                <i class="fa-solid fa-circle-user text-2xl text-slate-400 mb-1"></i>
+                                <span class="block text-xs font-bold text-slate-700">Inserir Logomarca</span>
+                                <span class="block text-[10px] text-slate-400 mt-0.5">Clique ou arraste</span>
+                            </div>
+                            <input type="file" id="upload-logo" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleLogoUpload(this)" />
+                        </div>
+
+                        <!-- Upload Moldura -->
+                        <div class="border-2 border-dashed border-slate-200 rounded-2xl p-4 hover:border-blue-400 transition cursor-pointer relative" id="frame-dropzone">
+                            <div class="text-center">
+                                <i class="fa-solid fa-border-all text-2xl text-slate-400 mb-1"></i>
+                                <span class="block text-xs font-bold text-slate-700">Adicionar Moldura</span>
+                                <span class="block text-[10px] text-slate-400 mt-0.5">Carregar arquivo local</span>
+                            </div>
+                            <input type="file" id="upload-frame" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleFrameUpload(this)" />
+                        </div>
+                    </div>
+
+                    <!-- Ajustes Visuais Extras de Logo -->
+                    <div id="logo-controls" class="hidden bg-slate-50 p-4 rounded-2xl space-y-3 border border-slate-100">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-600 uppercase">Configurações da Logomarca</span>
+                            <button class="text-xs text-red-500 font-bold hover:underline" onclick="removeLogo()">Remover logo</button>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-500 mb-1 font-semibold">
+                                <span>Tamanho da Logo: <span id="logo-size-value">45px</span></span>
+                            </div>
+                            <input type="range" id="logo-size-slider" min="30" max="80" value="45" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="adjustLogoSize(this.value)" />
+                        </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-500 mb-1 font-semibold">
+                            <span>Arredondamento: <span id="logo-radius-value">8px</span></span>
+                        </div>
+                        <input type="range" id="logo-radius-slider" min="0" max="50" value="8" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="adjustLogoRadius(this.value)" />
+                    </div>
+                        <div class="flex gap-2">
+                            <button class="flex-1 text-xs font-semibold py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-700" onclick="centerLogo()">Centralizar Logo</button>
+                        </div>
+                    </div>
+
+                    <!-- Ajustes de Moldura -->
+                    <div id="frame-controls" class="hidden bg-slate-50 p-4 rounded-2xl space-y-3 border border-slate-100">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-600 uppercase">Configurações da Moldura</span>
+                            <button class="text-xs text-red-500 font-bold hover:underline" onclick="removeFrame()">Remover moldura</button>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-500 mb-1 font-semibold">
+                                <span>Espaçamento da Moldura: <span id="frame-padding-value">24px</span></span>
+                            </div>
+                            <input type="range" id="frame-padding-slider" min="10" max="45" value="24" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600" oninput="adjustFramePadding(this.value)" />
+                        </div>
+                    </div>
+
+                    <!-- Color Picker e Presets de Cores -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                            <span class="text-xs font-bold text-slate-600 uppercase">Personalizar Cor do QR Code</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-500 font-medium">Seletor Livre:</span>
+                                <input type="color" id="custom-color-picker" value="#000000" class="w-10 h-7 border-0 rounded-md cursor-pointer bg-transparent" oninput="updateQRColor(this.value)" />
+                            </div>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-slate-400 mb-2 font-semibold">Cores Sugeridas:</span>
+                            <div class="grid grid-cols-5 sm:grid-cols-8 gap-3" id="moldes-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="w-full py-4 bg-slate-900 text-white rounded-xl font-bold shadow-xl hover:bg-slate-800 transition transform hover:-translate-y-0.5 active:translate-y-0" onclick="generateQR()">
+                    Gerar QR Code Final
+                </button>
+            </div>
         </div>
-      </div>
 
-      <div id="input-area" style="display: none">
-        <label id="label-input" style="font-weight: bold"></label><br />
-        <input type="text" id="user-data" placeholder="Digite aqui..." />
+        <!-- Right Column: Interactive Canvas Studio (Visual Preview Engine) -->
+        <div class="w-full lg:w-[45%] bg-slate-100 p-6 md:p-8 flex flex-col justify-between items-center workspace-area relative">
+            
+            <div class="w-full text-center lg:text-left mb-6">
+                <div class="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold mb-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span> Estúdio Live Preview
+                </div>
+                <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">Painel de Ajustes do Designer</h2>
+                <p class="text-xs text-slate-500 mt-1">Mova a logo livremente e aplique a moldura para o ajuste fino perfeito.</p>
+            </div>
 
-        <div id="pix-fields" style="display: none">
-          <label style="font-weight: bold">Nome do Recebedor:</label><br />
-          <input type="text" id="pix-name" placeholder="Ex: JOAO MATEUS" />
-          <label style="font-weight: bold">Cidade:</label><br />
-          <input type="text" id="pix-city" placeholder="Ex: SAO PAULO" />
+            <!-- Central QR Visualizer Workspace Wrapper -->
+            <div class="my-auto flex items-center justify-center w-full min-h-[340px]">
+                <div class="bg-white p-2 rounded-2xl shadow-xl border border-slate-200/50 flex justify-center items-center relative group">
+                    <div class="preview-frame-wrapper" id="frame-wrapper" style="padding: 24px;">
+                        <div id="qrcode" class="relative overflow-visible flex items-center justify-center bg-white" style="width: 256px; height: 256px;">
+                            <!-- O QR Code será injetado dinamicamente aqui -->
+                            <div id="qrcode-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-300">
+                                <i class="fa-solid fa-qrcode text-6xl mb-2"></i>
+                                <span class="text-xs font-medium">Aguardando dados...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barra Lateral de Modelos de Quadro (Presets) -->
+                    <div id="shape-presets-bar" class="hidden absolute -right-14 top-1/2 -translate-y-1/2 flex flex-col gap-3">
+                        <button onclick="applyShapePreset('square')" class="w-11 h-11 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md hover:border-blue-300 flex items-center justify-center text-slate-600 transition-all hover:scale-110 group/btn" title="Modelo Quadrado">
+                            <i class="fa-regular fa-square text-lg group-hover/btn:text-blue-600"></i>
+                        </button>
+                        <button onclick="applyShapePreset('rounded')" class="w-11 h-11 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 flex items-center justify-center text-slate-600 transition-all hover:scale-110 group/btn" title="Modelo Arredondado">
+                            <i class="fa-solid fa-shapes text-lg group-hover/btn:text-blue-600"></i>
+                        </button>
+                        <button onclick="applyShapePreset('circle')" class="w-11 h-11 bg-white border border-slate-200 rounded-full shadow-sm hover:shadow-md hover:border-blue-300 flex items-center justify-center text-slate-600 transition-all hover:scale-110 group/btn" title="Modelo Circular">
+                            <i class="fa-solid fa-circle text-lg group-hover/btn:text-blue-600"></i>
+                        </button>
+                    </div>
+
+                    <!-- Botão Flutuante de Centralização -->
+                    <button id="floating-center-btn" class="hidden absolute -bottom-4 -right-4 bg-blue-600 text-white w-11 h-11 rounded-full shadow-2xl hover:bg-blue-700 hover:scale-110 active:scale-95 transition-all flex items-center justify-center z-30 border-4 border-slate-100" onclick="centerLogo()" title="Centralizar Logomarca">
+                        <i class="fa-solid fa-arrows-to-dot text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Area / Export Button -->
+            <div class="w-full mt-6 space-y-3">
+                <div id="drag-hint" class="hidden text-center text-xs font-semibold text-slate-500">
+                    <i class="fa-solid fa-hand-pointer animate-bounce text-blue-500 mr-1.5"></i> Clique e arraste a logo no centro para reposicionar
+                </div>
+                <button id="download" class="download-btn w-full py-4 bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-500 transition flex items-center justify-center gap-2" onclick="downloadQR()">
+                    <i class="fa-solid fa-circle-down"></i> Baixar Imagem (Alta Definição)
+                </button>
+            </div>
         </div>
-
-        <p>Escolha um Molde/Cor:</p>
-        <div class="moldes" id="moldes-container"></div>
-
-        <button
-          class="btn-type"
-          style="width: 100%; background: #333"
-          onclick="generateQR()"
-        >
-          Criar QR Code
-        </button>
-      </div>
-
-      <div id="qrcode"></div>
-      <button id="download" class="download-btn" onclick="downloadQR()">
-        Baixar Imagem
-      </button>
     </div>
 
-    <!-- Botão Flutuante -->
+    <!-- Botão Flutuante de Regras -->
     <button class="float-btn" onclick="toggleRules(true)">
-      💡 Regras
+        <i class="fa-solid fa-circle-info"></i> Regras
     </button>
 
     <!-- Modal de Regras -->
     <div id="rules-modal" class="modal">
-      <div class="modal-content">
-        <h3 style="margin-top: 0; color: #007bff;">Regras de Preenchimento</h3>
-        <ul style="padding-left: 20px; font-size: 14px; line-height: 1.6;">
-          <li><strong>Link:</strong> Deve começar obrigatoriamente com <code>http://</code> ou <code>https://</code>.</li>
-          <li><strong>PIX CPF:</strong> Insira apenas os 11 números (o sistema removerá pontos e traços).</li>
-          <li><strong>PIX Celular:</strong> Use o formato com DDD. Ex: <code>11999999999</code>.</li>
-          <li><strong>PIX E-mail:</strong> Deve ser um e-mail válido (ex: nome@site.com).</li>
-          <li><strong>Nome/Cidade:</strong> São campos obrigatórios para o PIX. Evite caracteres especiais e acentos para garantir a compatibilidade com todos os bancos.</li>
-        </ul>
-        <button class="btn-type" style="width: 100%; margin-top: 15px;" onclick="toggleRules(false)">
-          Entendi
-        </button>
-      </div>
+        <div class="modal-content shadow-2xl border border-slate-100">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-bold text-blue-600 flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list"></i> Regras de Preenchimento
+                </h3>
+                <button class="text-slate-400 hover:text-slate-600 text-xl font-bold" onclick="toggleRules(false)">&times;</button>
+            </div>
+            <ul class="space-y-3 text-sm text-slate-600 leading-relaxed mb-6">
+                <li class="flex gap-2">
+                    <i class="fa-solid fa-circle-check text-blue-500 mt-1 text-xs"></i>
+                    <span><strong>Link:</strong> Deve começar obrigatoriamente com <code>http://</code> ou <code>https://</code>.</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fa-solid fa-circle-check text-blue-500 mt-1 text-xs"></i>
+                    <span><strong>PIX CPF:</strong> Insira os 11 dígitos. Sinais gráficos serão formatados automaticamente.</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fa-solid fa-circle-check text-blue-500 mt-1 text-xs"></i>
+                    <span><strong>PIX Celular:</strong> Use o padrão nacional com DDD (ex: <code>11999999999</code>).</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fa-solid fa-circle-check text-blue-500 mt-1 text-xs"></i>
+                    <span><strong>PIX E-mail:</strong> Deve ser um formato de e-mail válido (ex: <code>exemplo@site.com</code>).</span>
+                </li>
+                <li class="flex gap-2">
+                    <i class="fa-solid fa-circle-check text-blue-500 mt-1 text-xs"></i>
+                    <span><strong>Controles Avançados:</strong> Use o painel para carregar qualquer logo transparente ou moldura decorativa de marca.</span>
+                </li>
+            </ul>
+            <button class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition" onclick="toggleRules(false)">
+                Entendi as Regras
+            </button>
+        </div>
     </div>
 
+    <!-- Scripts do Sistema -->
     <script>
-      let currentMode = "";
-      const qrcodeContainer = document.getElementById("qrcode");
-      const downloadBtn = document.getElementById("download");
+        let currentMode = "";
+        const qrcodeContainer = document.getElementById("qrcode");
+        const downloadBtn = document.getElementById("download");
+        const frameWrapper = document.getElementById("frame-wrapper");
+        const qrcodePlaceholder = document.getElementById("qrcode-placeholder");
+        
+        let logoImgElement = null;
+        let isDragging = false;
+        let startX, startY;
+        let logoSize = 45; // Tamanho inicial da logo
+        let logoBorderRadius = 8; // Arredondamento inicial
+        let framePadding = 24; // Espaçamento inicial da moldura
 
-      // Cores para os 10 moldes
-      const colors = [
-        "#000000",
-        "#1a73e8",
-        "#d93025",
-        "#188038",
-        "#f29900",
-        "#8e24aa",
-        "#00acc1",
-        "#ff4081",
-        "#3949ab",
-        "#4caf50",
-      ];
+        // Paleta de cores moderna para o menu rápido
+        const colors = [
+            "#000000", // Classic Charcoal
+            "#475569", // Slate
+            "#dc2626", // Red
+            "#ea580c", // Orange
+            "#ca8a04", // Gold
+            "#16a34a", // Green
+            "#0891b2", // Teal
+            "#2563eb", // Blue
+            "#4f46e5", // Indigo
+            "#7c3aed", // Violet
+            "#db2777", // Pink
+            "#1e3a8a", // Navy
+            "#dc2626", // Red Punch
+            "#059669"  // Mint
+        ];
 
-      // Criar botões de moldes
-      const moldesDiv = document.getElementById("moldes-container");
-      colors.forEach((color) => {
-        const div = document.createElement("div");
-        div.className = "molde-opt";
-        div.style.backgroundColor = color;
-        div.onclick = () => {
-          window.selectedColor = color;
-          generateQR();
-        };
-        moldesDiv.appendChild(div);
-      });
-
-      window.selectedColor = "#000000";
-
-      function toggleRules(show) {
-        document.getElementById('rules-modal').style.display = show ? 'flex' : 'none';
-      }
-
-      function showPixRegistration() {
-        document.getElementById("main-menu").style.display = "none";
-        document.getElementById("pix-selector").style.display = "block";
-        qrcodeContainer.innerHTML = "";
-        downloadBtn.style.display = "none";
-      }
-
-      function resetMenu() {
-        document.getElementById("main-menu").style.display = "flex";
-        document.getElementById("pix-selector").style.display = "none";
-        document.getElementById("input-area").style.display = "none";
-        qrcodeContainer.innerHTML = "";
-        downloadBtn.style.display = "none";
-      }
-
-      function setMode(mode) {
-        currentMode = mode;
-        document.getElementById("input-area").style.display = "block";
-        document.getElementById("pix-fields").style.display =
-          mode === "Link" ? "none" : "block";
-        document.getElementById("label-input").innerText =
-          "Digite seu " + mode + ":";
-      }
-
-      function crc16(str) {
-        let crc = 0xffff;
-        for (let i = 0; i < str.length; i++) {
-          crc ^= str.charCodeAt(i) << 8;
-          for (let j = 0; j < 8; j++) {
-            if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
-            else crc <<= 1;
-          }
-        }
-        return (crc & 0xffff).toString(16).toUpperCase().padStart(4, "0");
-      }
-
-      function generatePixPayload(key, name, city) {
-        const format = (id, val) =>
-          id + String(val.length).padStart(2, "0") + val;
-        const clean = (s) =>
-          s
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toUpperCase();
-
-        const merchantInfo = format("00", "br.gov.bcb.pix") + format("01", key);
-
-        let payload =
-          format("00", "01") +
-          format("26", merchantInfo) +
-          format("52", "0000") +
-          format("53", "986") +
-          format("58", "BR") +
-          format("59", clean(name).substring(0, 25)) +
-          format("60", clean(city).substring(0, 15)) +
-          format("62", format("05", "***")) +
-          "6304";
-
-        return payload + crc16(payload);
-      }
-
-      function generateQR() {
-        let val = document.getElementById("user-data").value.trim();
-        if (!val) return alert("Senhor João Mateus, digite o dado primeiro!");
-
-        let qrText = val;
-
-        if (currentMode === "Link") {
-          // Validação de Link
-          if (!/^https?:\/\//i.test(val)) {
-            return alert("Para links, é obrigatório começar com http:// ou https://");
-          }
-        } else {
-          // Tratamento de Chaves PIX
-          const name = document.getElementById("pix-name").value;
-          const city = document.getElementById("pix-city").value;
-          if (!name || !city)
-            return alert("Nome e Cidade são obrigatórios para PIX!");
-
-          // Limpeza da chave conforme o tipo
-          if (currentMode === "CPF") {
-            val = val.replace(/\D/g, ""); // Remove tudo que não é número
-          } else if (currentMode === "Celular") {
-            val = val.replace(/\D/g, ""); // Remove parênteses, espaços e traços
-            if (!val.startsWith("55")) val = "55" + val; // Garante o código do país
-            val = "+" + val; // Formato internacional obrigatório para celular no PIX
-          }
-          
-          qrText = generatePixPayload(val, name, city);
-        }
-
-        qrcodeContainer.innerHTML = "";
-
-        new QRCode(qrcodeContainer, {
-          text: qrText,
-          width: 256,
-          height: 256,
-          colorDark: window.selectedColor,
-          colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H,
-          quietZone: 15,
-          dotScale: 0.8,
+        // Criação de Moldes Rápidos de Cores
+        const moldesDiv = document.getElementById("moldes-container");
+        colors.forEach((color, index) => {
+            const div = document.createElement("div");
+            div.className = `molde-opt w-8 h-8 rounded-full cursor-pointer border border-slate-200 transition-all transform hover:scale-110 ${index === 0 ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`;
+            div.style.backgroundColor = color;
+            div.onclick = () => {
+                updateQRColor(color, div);
+                showToast("Cor atualizada com sucesso!");
+            };
+            moldesDiv.appendChild(div);
         });
 
-        downloadBtn.style.display = "block";
-      }
+        window.selectedColor = "#000000";
 
-      function downloadQR() {
-        const canvas = qrcodeContainer.querySelector("canvas");
-        const img = qrcodeContainer.querySelector("img");
+        // Toast de Feedback Moderno (Evitando o alert bloqueante)
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = `flex items-center gap-2 p-4 mb-2 rounded-2xl shadow-xl border text-sm font-semibold pointer-events-auto transform translate-y-2 opacity-0 transition-all duration-300 ${
+                type === "error" 
+                ? "bg-rose-50 text-rose-800 border-rose-100" 
+                : "bg-emerald-50 text-emerald-800 border-emerald-100"
+            }`;
+            
+            const icon = type === "error" 
+                ? '<i class="fa-solid fa-circle-exclamation text-rose-500 text-lg"></i>' 
+                : '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>';
+            
+            toast.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
+            container.appendChild(toast);
 
-        // Tenta obter os dados da imagem da tag <img> ou do <canvas>
-        // Isso garante que o download funcione independente de como a biblioteca renderizou
-        const qrData =
-          img && img.src && img.src.startsWith("data:")
-            ? img.src
-            : canvas
-              ? canvas.toDataURL("image/png")
-              : null;
+            // Animação de entrada
+            setTimeout(() => {
+                toast.classList.remove("translate-y-2", "opacity-0");
+            }, 10);
 
-        if (!qrData)
-          return alert(
-            "Erro: A imagem ainda não foi processada. Tente clicar em 'Criar QR Code' novamente.",
-          );
+            // Animação de saída
+            setTimeout(() => {
+                toast.classList.add("translate-y-2", "opacity-0");
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
 
-        const link = document.createElement("a");
-        link.download = "qrcode-joao-mateus.png";
-        link.href = qrData;
-        document.body.appendChild(link); // Necessário para funcionamento em alguns navegadores
-        link.click();
-        document.body.removeChild(link); // Limpa o DOM após o clique
-      }
+        function toggleRules(show) {
+            document.getElementById('rules-modal').style.display = show ? 'flex' : 'none';
+        }
+
+        function showPixRegistration() {
+            document.getElementById("main-menu").classList.add("hidden");
+            document.getElementById("pix-selector").classList.remove("hidden");
+            qrcodeContainer.innerHTML = "";
+            qrcodeContainer.appendChild(qrcodePlaceholder);
+            downloadBtn.style.display = "none";
+            document.getElementById("drag-hint").classList.add("hidden");
+            document.getElementById("floating-center-btn").classList.add("hidden");
+            document.getElementById("shape-presets-bar").classList.add("hidden");
+        }
+
+        function resetMenu() {
+            document.getElementById("main-menu").classList.remove("hidden");
+            document.getElementById("pix-selector").classList.add("hidden");
+            document.getElementById("input-area").classList.add("hidden");
+            qrcodeContainer.innerHTML = "";
+            qrcodeContainer.appendChild(qrcodePlaceholder);
+            downloadBtn.style.display = "none";
+            document.getElementById("drag-hint").classList.add("hidden");
+            document.getElementById("floating-center-btn").classList.add("hidden");
+            document.getElementById("shape-presets-bar").classList.add("hidden");
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById("input-area").classList.remove("hidden");
+            document.getElementById("pix-fields").style.display = mode === "Link" ? "none" : "block";
+            document.getElementById("label-input").innerText = "Digite seu " + mode + ":";
+            
+            // Focar o campo de entrada para melhor experiência do usuário
+            const inputField = document.getElementById("user-data");
+            inputField.value = "";
+            inputField.focus();
+            
+            updateLivePreview();
+        }
+
+        function crc16(str) {
+            let crc = 0xffff;
+            for (let i = 0; i < str.length; i++) {
+                crc ^= str.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) {
+                    if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+                    else crc <<= 1;
+                }
+            }
+            return (crc & 0xffff).toString(16).toUpperCase().padStart(4, "0");
+        }
+
+        function generatePixPayload(key, name, city) {
+            const format = (id, val) => id + String(val.length).padStart(2, "0") + val;
+            const clean = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            const merchantInfo = format("00", "br.gov.bcb.pix") + format("01", key);
+            let payload = format("00", "01") + format("26", merchantInfo) + format("52", "0000") + format("53", "986") + format("58", "BR") + format("59", clean(name).substring(0, 25)) + format("60", clean(city).substring(0, 15)) + format("62", format("05", "***")) + "6304";
+            return payload + crc16(payload);
+        }
+
+        function updateQRColor(color, element = null) {
+            window.selectedColor = color;
+            document.getElementById("custom-color-picker").value = color;
+
+            // Atualiza o feedback visual da cor selecionada
+            document.querySelectorAll('.molde-opt').forEach(el => {
+                el.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+            });
+
+            if (element) {
+                element.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+            }
+
+            generateQR(true); 
+        }
+
+        // Sistema de Feedback Visual em Tempo Real (NF3)
+        let debounceTimer;
+        function updateLivePreview() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                let val = document.getElementById("user-data").value.trim();
+                if (!val) return;
+
+                // Verificação silenciosa para evitar alertas irritantes durante a digitação
+                if (currentMode === "Link" && !/^https?:\/\//i.test(val)) return;
+                if (currentMode !== "Link") {
+                    const name = document.getElementById("pix-name").value.trim();
+                    const city = document.getElementById("pix-city").value.trim();
+                    if (!name || !city) return;
+                }
+                generateQR(true);
+            }, 400); // Aguarda 400ms após o último input para processar
+        }
+
+        // Função Geradora Principal de QR Code
+        function generateQR(isLive = false) {
+            let val = document.getElementById("user-data").value.trim();
+            if (!val) {
+                if (!isLive) showToast("Por favor, preencha o campo de dados primeiro!", "error");
+                return;
+            }
+            
+            let qrText = val;
+            if (currentMode === "Link") {
+                if (!/^https?:\/\//i.test(val)) {
+                    if (!isLive) showToast("Links devem começar obrigatoriamente com http:// ou https://", "error");
+                    return;
+                }
+            } else {
+                const name = document.getElementById("pix-name").value.trim();
+                const city = document.getElementById("pix-city").value.trim();
+                if (!name || !city) {
+                    if (!isLive) showToast("Nome do Recebedor e Cidade são obrigatórios para PIX!", "error");
+                    return;
+                }
+                
+                if (currentMode === "CPF") {
+                    val = val.replace(/\D/g, "");
+                } else if (currentMode === "Celular") {
+                    val = val.replace(/\D/g, "");
+                    if (!val.startsWith("55")) val = "55" + val;
+                    val = "+" + val;
+                }
+                qrText = generatePixPayload(val, name, city);
+            }
+
+            // Preservar posições e fontes da logo se existirem
+            const savedLogoSrc = logoImgElement ? logoImgElement.src : null;
+            const savedLogoLeft = logoImgElement ? logoImgElement.style.left : null;
+            const savedLogoTop = logoImgElement ? logoImgElement.style.top : null;
+
+            qrcodeContainer.innerHTML = "";
+            
+            // Instancia o EasyQRCodeJS no container
+            new QRCode(qrcodeContainer, {
+                text: qrText,
+                width: 256,
+                height: 256,
+                colorDark: window.selectedColor,
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H,
+                quietZone: 15,
+                dotScale: 0.8,
+            });
+
+            // Restaurar e reinjetar a logo após geração do QR Code
+            if (savedLogoSrc) {
+                recreateLogoElement(savedLogoSrc, savedLogoLeft, savedLogoTop);
+            }
+
+            downloadBtn.style.display = "block";
+            document.getElementById("shape-presets-bar").classList.remove("hidden");
+        }
+
+        // Processamento de Arquivos Locais (NF1)
+        function handleLogoUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    recreateLogoElement(e.target.result);
+                    document.getElementById("logo-controls").classList.remove("hidden");
+                    document.getElementById("drag-hint").classList.remove("hidden");
+                    document.getElementById("floating-center-btn").classList.remove("hidden");
+                    showToast("Logomarca carregada! Arraste-a no centro do QR Code para ajustar.");
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function handleFrameUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    frameWrapper.style.backgroundImage = `url('${e.target.result}')`;
+                    frameWrapper.style.backgroundSize = "100% 100%";
+                    frameWrapper.style.backgroundRepeat = "no-repeat";
+                    document.getElementById("frame-controls").classList.remove("hidden");
+                    showToast("Moldura aplicada ao redor do QR Code com sucesso!");
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Criar elemento de Logo Interativo com Suporte a Drag & Drop (NF2)
+        function recreateLogoElement(src, left = null, top = null) {
+            if (logoImgElement) {
+                logoImgElement.remove();
+            }
+            
+            logoImgElement = document.createElement("img");
+            logoImgElement.src = src;
+            logoImgElement.className = "draggable-logo absolute border-2 border-dashed border-blue-500 bg-white/90 p-0.5 z-10 shadow-md";
+            logoImgElement.style.width = logoSize + "px";
+            logoImgElement.style.height = logoSize + "px";
+            logoImgElement.style.objectFit = "contain";
+            logoImgElement.style.borderRadius = logoBorderRadius == 50 ? "50%" : logoBorderRadius + "px";
+            
+            if (left && top) {
+                logoImgElement.style.left = left;
+                logoImgElement.style.top = top;
+            } else {
+                // Posicionamento centralizado padrão
+                centerLogo();
+            }
+
+            qrcodeContainer.appendChild(logoImgElement);
+            initDragAndDrop(logoImgElement);
+        }
+
+        function removeLogo() {
+            if (logoImgElement) {
+                logoImgElement.remove();
+                logoImgElement = null;
+            }
+            document.getElementById("logo-controls").classList.add("hidden");
+            document.getElementById("drag-hint").classList.add("hidden");
+            document.getElementById("floating-center-btn").classList.add("hidden");
+            document.getElementById("upload-logo").value = "";
+            showToast("Logomarca removida.");
+        }
+
+        function removeFrame() {
+            frameWrapper.style.backgroundImage = "none";
+            document.getElementById("frame-controls").classList.add("hidden");
+            document.getElementById("upload-frame").value = "";
+            showToast("Moldura removida.");
+        }
+
+        function adjustLogoSize(val) {
+            logoSize = Number(val);
+            document.getElementById("logo-size-value").innerText = val + "px";
+            if (logoImgElement) {
+                logoImgElement.style.width = val + "px";
+                logoImgElement.style.height = val + "px";
+            }
+        }
+
+        function adjustLogoRadius(val) {
+            logoBorderRadius = Number(val);
+            document.getElementById("logo-radius-value").innerText = val == 50 ? "Circular" : val + "px";
+            if (logoImgElement) {
+                logoImgElement.style.borderRadius = val == 50 ? "50%" : val + "px";
+            }
+        }
+
+        function adjustFramePadding(val) {
+            framePadding = val;
+            document.getElementById("frame-padding-value").innerText = val + "px";
+            frameWrapper.style.padding = val + "px";
+        }
+
+        function applyShapePreset(type) {
+            if (type === 'square') {
+                adjustLogoRadius(0);
+                document.getElementById("logo-radius-slider").value = 0;
+                frameWrapper.style.borderRadius = "0px";
+            } else if (type === 'rounded') {
+                adjustLogoRadius(15);
+                document.getElementById("logo-radius-slider").value = 15;
+                frameWrapper.style.borderRadius = "32px";
+            } else if (type === 'circle') {
+                adjustLogoRadius(50);
+                document.getElementById("logo-radius-slider").value = 50;
+                frameWrapper.style.borderRadius = "1000px";
+            }
+            showToast(`Estilo ${type} aplicado ao quadro e logo!`);
+            generateQR(true);
+        }
+
+        function centerLogo() {
+            if (logoImgElement) {
+                const qrWidth = qrcodeContainer.clientWidth || 256;
+                const qrHeight = qrcodeContainer.clientHeight || 256;
+                logoImgElement.style.left = `${(qrWidth / 2) - (logoSize / 2)}px`;
+                logoImgElement.style.top = `${(qrHeight / 2) - (logoSize / 2)}px`;
+            }
+        }
+
+        // Lógica Avançada de Drag and Drop para Dispositivos Móveis e Desktop (NF2)
+        function initDragAndDrop(element) {
+            element.addEventListener("mousedown", dragStart);
+            document.addEventListener("mousemove", dragMove);
+            document.addEventListener("mouseup", dragEnd);
+
+            element.addEventListener("touchstart", dragStart, { passive: false });
+            document.addEventListener("touchmove", dragMove, { passive: false });
+            document.addEventListener("touchend", dragEnd);
+        }
+
+        function dragStart(e) {
+            isDragging = true;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            // Medir as coordenadas iniciais dentro do container do QR Code
+            startX = clientX - logoImgElement.offsetLeft;
+            startY = clientY - logoImgElement.offsetTop;
+            
+            if (e.cancelable) e.preventDefault();
+        }
+
+        function dragMove(e) {
+            if (!isDragging) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            let newLeft = clientX - startX;
+            let newTop = clientY - startY;
+
+            // Restrição de limites internos ao QR Code
+            const maxLeft = qrcodeContainer.clientWidth - logoImgElement.clientWidth;
+            const maxTop = qrcodeContainer.clientHeight - logoImgElement.clientHeight;
+
+            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            newTop = Math.max(0, Math.min(newTop, maxTop));
+
+            logoImgElement.style.left = newLeft + "px";
+            logoImgElement.style.top = newTop + "px";
+        }
+
+        function dragEnd() {
+            isDragging = false;
+        }
+
+        // Motor de Compressão e Exportação do Canvas Final com Alinhamento do Designer
+        function downloadQR() {
+            const canvasQR = qrcodeContainer.querySelector("canvas");
+            if (!canvasQR) {
+                showToast("Por favor, crie seu QR Code antes de exportar!", "error");
+                return;
+            }
+
+            // Fator de escala: Compara a largura real do Canvas gerado com a largura visual na tela
+            const canvasRect = canvasQR.getBoundingClientRect();
+            const scale = canvasQR.width / canvasRect.width;
+
+            // Criar canvas virtual completo baseado nas configurações do estúdio
+            const exportCanvas = document.createElement("canvas");
+            const ctx = exportCanvas.getContext("2d");
+            
+            const hasFrame = frameWrapper.style.backgroundImage && frameWrapper.style.backgroundImage !== "none";
+            const scaledPadding = Math.round(Number(framePadding) * scale);
+            
+            // Captura o estilo exato da moldura (Presets de arredondamento)
+            const frameStyle = window.getComputedStyle(frameWrapper);
+            const rawRadius = parseFloat(frameStyle.borderRadius) || 0;
+            
+            // Resolução final calculada com precisão
+            exportCanvas.width = canvasQR.width + (hasFrame ? scaledPadding * 2 : 0);
+            exportCanvas.height = canvasQR.height + (hasFrame ? scaledPadding * 2 : 0);
+
+            // Ajuste do raio: Se for maior que a metade da largura, tratamos como círculo perfeito
+            const maxRadius = exportCanvas.width / 2;
+            const scaledFrameRadius = Math.min(rawRadius * scale, maxRadius);
+
+            // Sequência de montagem das camadas (Layers)
+            const exportProcess = () => {
+                ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+                // Camada 0: Recorte de bordas (Garante que o download seja Circular/Arredondado como no Preview)
+                if (scaledFrameRadius > 0) {
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(0, 0, exportCanvas.width, exportCanvas.height, scaledFrameRadius);
+                    } else {
+                        // Fallback para navegadores antigos ou círculos perfeitos
+                        ctx.arc(maxRadius, maxRadius, maxRadius, 0, Math.PI * 2);
+                    }
+                    ctx.clip();
+                }
+
+                // Camada 1: Moldura customizada de fundo
+                if (hasFrame) {
+                    // Extração robusta da URL da imagem
+                    const frameImgSrc = frameWrapper.style.backgroundImage.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
+                    const frameImg = new Image();
+                    frameImg.src = frameImgSrc;
+                    
+                    frameImg.onload = () => {
+                        ctx.drawImage(frameImg, 0, 0, exportCanvas.width, exportCanvas.height);
+                        drawQRAndLogo();
+                    };
+                } else {
+                    // Preencher fundo com branco caso não haja moldura
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+                    drawQRAndLogo();
+                }
+            };
+
+            const drawQRAndLogo = () => {
+                // Camada 2: QR Code centralizado no Canvas de exportação
+                const qrX = hasFrame ? scaledPadding : 0;
+                const qrY = hasFrame ? scaledPadding : 0;
+                ctx.drawImage(canvasQR, qrX, qrY);
+
+                // Camada 3: Logomarca arrastada na posição de offset precisa
+                if (logoImgElement) {
+                    const logoImg = new Image();
+                    logoImg.src = logoImgElement.src;
+                    
+                    logoImg.onload = () => {
+                        // Medição precisa da posição da logo em relação ao QR Code na tela
+                        const logoRect = logoImgElement.getBoundingClientRect();
+                        const relX = logoRect.left - canvasRect.left;
+                        const relY = logoRect.top - canvasRect.top;
+                        
+                        // Coordenadas e tamanhos escalonados para a resolução de exportação
+                        const exportLogoSize = logoRect.width * scale;
+                        const logoX = (relX * scale) + qrX;
+                        const logoY = (relY * scale) + qrY;
+                        
+                        // Estilo do fundo da logomarca
+                        const scaledRadius = (logoBorderRadius == 50 ? exportLogoSize / 2 : logoBorderRadius * scale);
+                        const paddingOffset = 2 * scale; // Compensa o p-0.5 visual
+
+                        // 1. Desenhar o Fundo Branco Arredondado
+                        ctx.save();
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(logoX, logoY, exportLogoSize, exportLogoSize, scaledRadius);
+                        } else {
+                            ctx.rect(logoX, logoY, exportLogoSize, exportLogoSize);
+                        }
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+                        ctx.fill();
+                        ctx.restore();
+                        
+                        // 2. Desenhar a Logomarca mantendo proporção (Contain)
+                        ctx.save();
+                        const contentSize = exportLogoSize - (paddingOffset * 2);
+                        ctx.beginPath();
+                        if (ctx.roundRect) {
+                            ctx.roundRect(logoX + paddingOffset, logoY + paddingOffset, contentSize, contentSize, Math.max(0, scaledRadius - paddingOffset));
+                        } else {
+                            ctx.rect(logoX + paddingOffset, logoY + paddingOffset, contentSize, contentSize);
+                        }
+                        ctx.clip();
+
+                        // Cálculo para não esticar a imagem (Simula object-fit: contain)
+                        const ratio = Math.min(contentSize / logoImg.width, contentSize / logoImg.height);
+                        const finalW = logoImg.width * ratio;
+                        const finalH = logoImg.height * ratio;
+                        const offX = (contentSize - finalW) / 2;
+                        const offY = (contentSize - finalH) / 2;
+                        
+                        ctx.drawImage(logoImg, logoX + paddingOffset + offX, logoY + paddingOffset + offY, finalW, finalH);
+                        ctx.restore();
+
+                        triggerFileDownload();
+                    };
+                } else {
+                    triggerFileDownload();
+                }
+            };
+
+            const triggerFileDownload = () => {
+                const link = document.createElement("a");
+                link.download = "qrcode-studio-joao-mateus.png";
+                link.href = exportCanvas.toDataURL("image/png");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showToast("Seu design foi exportado com sucesso em alta definição!");
+            };
+
+            // Inicia o processo de renderização com micro-delay de segurança
+            setTimeout(exportProcess, 100);
+        }
     </script>
-  </body>
+</body>
 </html>
